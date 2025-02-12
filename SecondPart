@@ -1,0 +1,97 @@
+Great question! JavaScript is indeed single-threaded, meaning it has one **call stack** and can only execute one task at a time. However, JavaScript handles asynchronous operations (like `setTimeout`, `fetch`, or `Promise`) using an **event loop** and a **browser (or runtime) environment**. Here's how it works:
+
+---
+
+### **1. Single-Threaded Nature**
+- JavaScript runs on a single thread, so it can only execute one piece of code at a time.
+- This means synchronous code (e.g., `console.log`, loops, calculations) will block the thread until it completes.
+
+---
+
+### **2. Asynchronous Functions**
+Asynchronous functions (e.g., `setTimeout`, `fetch`, `Promise`) don't block the main thread. Instead, they are handled by the **browser or runtime environment** (e.g., Node.js). Here's what happens:
+
+#### **a. Web APIs (Browser Environment)**
+- When an asynchronous function (like `setTimeout` or `fetch`) is called, it is handed off to the browser's Web APIs.
+- The browser runs these tasks in the background, outside the JavaScript thread.
+- For example:
+  - `setTimeout(callback, 1000)` is sent to the browser's timer API.
+  - `fetch()` is sent to the browser's network API.
+
+#### **b. Callback Queue**
+- Once the asynchronous task is complete (e.g., the timer expires or the network request finishes), the callback function is placed in the **callback queue** (also called the task queue).
+
+#### **c. Event Loop**
+- The **event loop** constantly checks if the call stack is empty.
+- When the call stack is empty (i.e., all synchronous code has finished executing), the event loop takes the callback from the callback queue and pushes it onto the call stack for execution.
+
+---
+
+### **3. Example**
+```javascript
+console.log("Start");
+
+setTimeout(() => {
+  console.log("Timeout");
+}, 1000);
+
+console.log("End");
+```
+
+#### **Execution Flow**
+1. `console.log("Start")` runs immediately (synchronous).
+2. `setTimeout` is handed off to the browser's timer API (asynchronous).
+3. `console.log("End")` runs immediately (synchronous).
+4. After 1 second, the browser's timer API completes and places the callback (`() => { console.log("Timeout"); }`) in the callback queue.
+5. The event loop pushes the callback onto the call stack once the call stack is empty.
+6. `console.log("Timeout")` runs.
+
+#### **Output**
+```
+Start
+End
+Timeout
+```
+
+---
+
+### **4. Promises and Microtasks**
+- Promises (and `async/await`) use a **microtask queue** instead of the callback queue.
+- Microtasks have higher priority than regular callbacks and are executed before the next rendering or I/O event.
+- Example:
+```javascript
+console.log("Start");
+
+Promise.resolve().then(() => {
+  console.log("Promise");
+});
+
+setTimeout(() => {
+  console.log("Timeout");
+}, 0);
+
+console.log("End");
+```
+
+#### **Output**
+```
+Start
+End
+Promise
+Timeout
+```
+
+---
+
+### **5. Where Does Async Code Run?**
+- **Browser Environment**: Async tasks like `setTimeout`, `fetch`, and DOM events are handled by the browser's Web APIs.
+- **Node.js Environment**: Async tasks like file I/O, network requests, and timers are handled by Node.js's internal APIs (libuv).
+
+---
+
+### **6. Summary**
+- JavaScript is single-threaded, but asynchronous tasks are offloaded to the browser or runtime environment.
+- Async tasks run in the background, and their callbacks are placed in the callback queue or microtask queue.
+- The event loop ensures that these callbacks are executed only when the call stack is empty.
+
+This mechanism allows JavaScript to handle asynchronous operations efficiently without blocking the main thread. Let me know if you'd like further clarification!
