@@ -1,0 +1,212 @@
+### **File Structure**
+```
+project/
+├── controllers/
+│   └── userController.js
+├── services/
+│   └── userService.js
+├── routers/
+│   └── userRouter.js
+├── models/
+│   └── users.js
+├── data/
+│   └── users.json
+└── app.js
+```
+
+---
+
+### **1. `models/users.js`**
+```javascript
+// models/users.js
+import fs from 'fs';
+import path from 'path';
+
+// Path to the JSON file where user data is stored
+const usersFilePath = path.join(process.cwd(), 'data', 'users.json');
+
+export default class Users {
+  constructor() {
+    // Load users from the JSON file when the class is instantiated
+    this.users = this.loadUsers();
+  }
+
+  // Method to load users from the JSON file
+  loadUsers() {
+    try {
+      const data = fs.readFileSync(usersFilePath, 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      return []; // Return an empty array if the file doesn't exist or is invalid
+    }
+  }
+
+  // Method to save users to the JSON file
+  saveUsers() {
+    fs.writeFileSync(usersFilePath, JSON.stringify(this.users, null, 2));
+  }
+
+  // Method to add a new user to the list and save it
+  addUser(user) {
+    this.users.push(user);
+    this.saveUsers();
+  }
+
+  // Method to find a user by name and password
+  findUserByNameAndPassword(name, password) {
+    return this.users.find(
+      (user) => user.name === name && user.password === password
+    );
+  }
+}
+```
+
+---
+
+### **2. `services/userService.js`**
+```javascript
+// services/userService.js
+import Users from '../models/users.js';
+
+// Create an instance of the Users class
+const users = new Users();
+
+export default class UserService {
+  // Method to check if a user exists in the list
+  static checkUserExists(userData) {
+    const { name, password } = userData;
+    // Find the user by name and password
+    const user = users.findUserByNameAndPassword(name, password);
+    if (user) {
+      return user; // Return the user if found
+    } else {
+      throw new Error('User not found'); // Throw an error if the user is not found
+    }
+  }
+}
+```
+
+---
+
+### **3. `controllers/userController.js`**
+```javascript
+// controllers/userController.js
+import UserService from '../services/userService.js';
+
+export default class UserController {
+  // Method to handle the /check-user route
+  static async checkUser(req, res) {
+    try {
+      // Call the service to check if the user exists
+      const user = UserService.checkUserExists(req.body);
+      // Return the user if found
+      res.status(200).json(user);
+    } catch (error) {
+      // Return a 403 error if the user is not found
+      res.status(403).json({ error: error.message });
+    }
+  }
+}
+```
+
+---
+
+### **4. `routers/userRouter.js`**
+```javascript
+// routers/userRouter.js
+import express from 'express';
+import UserController from '../controllers/userController.js';
+
+// Create a new router instance
+const router = express.Router();
+
+// Define the /check-user route and link it to the UserController.checkUser method
+router.post('/check-user', UserController.checkUser);
+
+// Export the router
+export default router;
+```
+
+---
+
+### **5. `app.js`**
+```javascript
+// app.js
+import express from 'express';
+import userRouter from './routers/userRouter.js';
+
+// Create an Express application
+const app = express();
+const PORT = 3000;
+
+// Middleware to parse JSON requests
+// This allows Express to automatically parse JSON data in the request body
+app.use(express.json());
+
+// Mount the userRouter at the /users path
+// All routes defined in userRouter will be prefixed with /users
+app.use('/users', userRouter);
+
+// Start the server and listen on the specified port
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
+```
+
+---
+
+### **6. `data/users.json`**
+```json
+[
+  {
+    "name": "john",
+    "password": "password123",
+    "classification": "admin"
+  },
+  {
+    "name": "jane",
+    "password": "password456",
+    "classification": "user"
+  }
+]
+```
+
+---
+
+### **Explanation of Key Lines**
+
+#### **1. `app.use(express.json());`**
+- This line adds middleware to the Express app to parse incoming JSON requests.
+- Without this, `req.body` would be `undefined` when receiving JSON data.
+
+#### **2. `app.use('/users', userRouter);`**
+- This line mounts the `userRouter` at the `/users` path.
+- All routes defined in `userRouter` will be prefixed with `/users`. For example:
+  - The `/check-user` route in `userRouter` becomes `/users/check-user`.
+
+---
+
+### **Testing the Endpoint**
+You can test the `/users/check-user` endpoint using a tool like Postman or `curl`:
+
+#### **Request**
+```bash
+curl -X POST http://localhost:3000/users/check-user \
+-H "Content-Type: application/json" \
+-d '{"name": "john", "password": "password123"}'
+```
+
+#### **Response (Success)**
+```json
+{
+  "name": "john",
+  "password": "password123",
+  "classification": "admin"
+}
+```
+
+#### **Response (Error)**
+```json
+{
+  "error": "User not found"
+}
