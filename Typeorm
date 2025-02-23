@@ -150,3 +150,219 @@ async createUser(userData: { email: string; name: string }): Promise<User> {
 - Alternatively, use `findOne` to check for duplicates before saving.
 
 Let me know if you need further clarification or help! 😊
+
+
+
+Absolutely! **QueryBuilder** in TypeORM is a powerful tool for constructing complex SQL queries in a programmatic and type-safe way. It allows you to build queries using methods and functions instead of writing raw SQL. Let’s dive into some common examples and frequently used `QueryBuilder` functions, including `getRelationCountAndMap`.
+
+---
+
+### **1. Basic Usage of QueryBuilder**
+The `QueryBuilder` is typically used to create `SELECT`, `INSERT`, `UPDATE`, and `DELETE` queries. Here’s how you can use it:
+
+#### Example: Select All Users
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .getMany();
+```
+
+- `createQueryBuilder('user')`: Creates a `QueryBuilder` instance for the `user` table (or entity).
+- `getMany()`: Executes the query and returns an array of entities.
+
+---
+
+### **2. Common QueryBuilder Functions**
+Here are some of the most commonly used `QueryBuilder` functions:
+
+#### **`select()`**
+Specifies the columns to select.
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .select(['user.id', 'user.name'])
+  .getMany();
+```
+
+#### **`where()`**
+Adds a `WHERE` clause to filter results.
+
+```typescript
+const user = await userRepository
+  .createQueryBuilder('user')
+  .where('user.email = :email', { email: 'test@example.com' })
+  .getOne();
+```
+
+#### **`andWhere()`**
+Adds additional `WHERE` conditions.
+
+```typescript
+const user = await userRepository
+  .createQueryBuilder('user')
+  .where('user.email = :email', { email: 'test@example.com' })
+  .andWhere('user.isActive = :isActive', { isActive: true })
+  .getOne();
+```
+
+#### **`orWhere()`**
+Adds an `OR` condition to the `WHERE` clause.
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .where('user.email = :email', { email: 'test@example.com' })
+  .orWhere('user.name = :name', { name: 'John' })
+  .getMany();
+```
+
+#### **`orderBy()`**
+Sorts the results by a specific column.
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .orderBy('user.name', 'ASC')
+  .getMany();
+```
+
+#### **`leftJoinAndSelect()`**
+Performs a `LEFT JOIN` and includes the joined data in the result.
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .leftJoinAndSelect('user.posts', 'post')
+  .getMany();
+```
+
+#### **`take()` and `skip()`**
+Adds pagination to the query.
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .skip(10) // Skip the first 10 results
+  .take(5)  // Take 5 results
+  .getMany();
+```
+
+#### **`getRawOne()` and `getRawMany()`**
+Returns raw database results instead of entities.
+
+```typescript
+const rawData = await userRepository
+  .createQueryBuilder('user')
+  .select(['user.id', 'user.name'])
+  .getRawMany();
+```
+
+---
+
+### **3. Advanced QueryBuilder Functions**
+#### **`getRelationCountAndMap()`**
+This function is used to count related entities and map the count to a virtual property on the main entity.
+
+##### Example: Count User Posts
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .leftJoin('user.posts', 'post')
+  .getRelationCountAndMap('user.postCount', 'user.posts')
+  .getMany();
+```
+
+- `getRelationCountAndMap('user.postCount', 'user.posts')`:
+  - `'user.postCount'`: The virtual property where the count will be stored.
+  - `'user.posts'`: The relation to count.
+
+After running this query, each `user` object will have a `postCount` property with the number of posts they have.
+
+---
+
+#### **`groupBy()`**
+Groups the results by a specific column.
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .select(['user.country', 'COUNT(user.id) AS userCount'])
+  .groupBy('user.country')
+  .getRawMany();
+```
+
+#### **`having()`**
+Filters the results of a `GROUP BY` query.
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .select(['user.country', 'COUNT(user.id) AS userCount'])
+  .groupBy('user.country')
+  .having('userCount > :minCount', { minCount: 10 })
+  .getRawMany();
+```
+
+#### **`subQuery()`**
+Creates a subquery.
+
+```typescript
+const subQuery = userRepository
+  .createQueryBuilder('user')
+  .select('user.id')
+  .where('user.isActive = :isActive', { isActive: true });
+
+const activeUsers = await userRepository
+  .createQueryBuilder('user')
+  .where(`user.id IN (${subQuery.getQuery()})`)
+  .setParameters(subQuery.getParameters())
+  .getMany();
+```
+
+---
+
+### **4. Example: Complex Query**
+Here’s an example of a more complex query using multiple `QueryBuilder` functions:
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder('user')
+  .leftJoinAndSelect('user.posts', 'post')
+  .where('user.isActive = :isActive', { isActive: true })
+  .andWhere('post.createdAt > :date', { date: '2023-01-01' })
+  .orderBy('user.name', 'ASC')
+  .skip(10)
+  .take(5)
+  .getMany();
+```
+
+---
+
+### **5. Summary of Common QueryBuilder Functions**
+| Function                     | Description                                                                 |
+|------------------------------|-----------------------------------------------------------------------------|
+| `createQueryBuilder()`        | Creates a new `QueryBuilder` instance.                                      |
+| `select()`                    | Specifies the columns to select.                                            |
+| `where()`                     | Adds a `WHERE` clause to filter results.                                    |
+| `andWhere()`                  | Adds additional `WHERE` conditions.                                         |
+| `orWhere()`                   | Adds an `OR` condition to the `WHERE` clause.                               |
+| `orderBy()`                   | Sorts the results by a specific column.                                     |
+| `leftJoinAndSelect()`         | Performs a `LEFT JOIN` and includes the joined data in the result.          |
+| `take()` and `skip()`         | Adds pagination to the query.                                               |
+| `getRawOne()` and `getRawMany()` | Returns raw database results instead of entities.                         |
+| `getRelationCountAndMap()`    | Counts related entities and maps the count to a virtual property.           |
+| `groupBy()`                   | Groups the results by a specific column.                                    |
+| `having()`                    | Filters the results of a `GROUP BY` query.                                  |
+| `subQuery()`                  | Creates a subquery.                                                         |
+
+---
+
+### **6. When to Use QueryBuilder**
+- **Complex Queries**: When you need to build queries with multiple joins, conditions, or aggregations.
+- **Dynamic Queries**: When the query needs to be constructed dynamically based on user input or other conditions.
+- **Performance**: When you need fine-grained control over the SQL query for optimization.
+
+---
+
+Let me know if you need further clarification or more examples! 😊
