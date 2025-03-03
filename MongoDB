@@ -1,0 +1,388 @@
+### **1. Database Design Patterns**
+MongoDB is schema-less, but you still need to design your collections and documents based on the relationships between entities. Here’s a quick overview of the patterns:
+
+#### **One-to-Few**
+- Use **embedding** (nested documents) when the related data is small and doesn’t change frequently.
+- Example: A `user` document with a few embedded `address` documents.
+```json
+{
+  "_id": 1,
+  "name": "John Doe",
+  "addresses": [
+    { "type": "home", "street": "123 Main St" },
+    { "type": "work", "street": "456 Office Rd" }
+  ]
+}
+```
+
+#### **One-to-Many**
+- Use **referencing** (document references) when the related data is larger or frequently updated.
+- Example: A `user` document referencing multiple `order` documents.
+```json
+// users collection
+{
+  "_id": 1,
+  "name": "John Doe",
+  "order_ids": [101, 102]
+}
+
+// orders collection
+{
+  "_id": 101,
+  "product": "Laptop",
+  "user_id": 1
+}
+{
+  "_id": 102,
+  "product": "Phone",
+  "user_id": 1
+}
+```
+
+#### **One-to-Squillions**
+- Use **referencing** when the related data is extremely large (e.g., logs, comments).
+- Example: A `user` document referencing millions of `log` entries.
+```json
+// users collection
+{
+  "_id": 1,
+  "name": "John Doe"
+}
+
+// logs collection
+{
+  "_id": 1001,
+  "message": "User logged in",
+  "user_id": 1,
+  "timestamp": "2023-10-01T12:00:00Z"
+}
+```
+
+---
+
+### **2. CRUD Operations**
+Here’s how you can perform CRUD operations in MongoDB using Studio 3T:
+
+#### **Create (Insert)**
+- Insert a single document:
+```javascript
+db.collection.insertOne({
+  name: "Alice",
+  age: 25
+});
+```
+- Insert multiple documents:
+```javascript
+db.collection.insertMany([
+  { name: "Bob", age: 30 },
+  { name: "Charlie", age: 35 }
+]);
+```
+
+#### **Read (Query)**
+- Find all documents:
+```javascript
+db.collection.find();
+```
+- Find documents with a condition:
+```javascript
+db.collection.find({ age: { $gt: 25 } });
+```
+- Find one document:
+```javascript
+db.collection.findOne({ name: "Alice" });
+```
+
+#### **Update**
+- Update one document:
+```javascript
+db.collection.updateOne(
+  { name: "Alice" },
+  { $set: { age: 26 } }
+);
+```
+- Update multiple documents:
+```javascript
+db.collection.updateMany(
+  { age: { $lt: 30 } },
+  { $set: { status: "young" } }
+);
+```
+
+#### **Delete**
+- Delete one document:
+```javascript
+db.collection.deleteOne({ name: "Alice" });
+```
+- Delete multiple documents:
+```javascript
+db.collection.deleteMany({ age: { $gt: 30 } });
+```
+
+---
+
+### **3. Tips for the Test**
+1. **Understand the Problem**: Carefully read the problem statement to identify the relationships (one-to-few, one-to-many, etc.).
+2. **Choose the Right Design Pattern**: Decide whether to embed or reference documents based on the relationship type.
+3. **Write Clean Queries**: Use proper indentation and comments in your queries to make them readable.
+4. **Test Your Queries**: Run your queries in Studio 3T to ensure they work as expected.
+5. **Indexes**: If performance is a concern, consider adding indexes to frequently queried fields.
+
+---
+
+### **Example Scenario**
+Let’s say you’re asked to design a database for a blog platform:
+- Each `user` can write many `posts`.
+- Each `post` can have many `comments`.
+
+#### Database Design
+- **Users Collection**:
+```json
+{
+  "_id": 1,
+  "name": "John",
+  "email": "john@example.com"
+}
+```
+- **Posts Collection** (referencing users):
+```json
+{
+  "_id": 101,
+  "title": "My First Post",
+  "content": "Hello, world!",
+  "user_id": 1
+}
+```
+- **Comments Collection** (referencing posts):
+```json
+{
+  "_id": 1001,
+  "text": "Great post!",
+  "post_id": 101
+}
+```
+
+#### CRUD Operations
+- Insert a new post:
+```javascript
+db.posts.insertOne({
+  title: "New Post",
+  content: "This is a new post.",
+  user_id: 1
+});
+```
+- Find all posts by a user:
+```javascript
+db.posts.find({ user_id: 1 });
+```
+- Update a post’s title:
+```javascript
+db.posts.updateOne(
+  { _id: 101 },
+  { $set: { title: "Updated Title" } }
+);
+```
+- Delete a comment:
+```javascript
+db.comments.deleteOne({ _id: 1001 
+---
+
+### **1. Relationships Between Collections**
+
+#### **User and Posts**
+- **Relationship**: **One-to-Many**
+  - One `user` can write many `posts`.
+  - This is implemented using **referencing** (the `posts` collection contains a `user_id` field that references the `user`).
+
+#### **Posts and Comments**
+- **Relationship**: **One-to-Many**
+  - One `post` can have many `comments`.
+  - This is also implemented using **referencing** (the `comments` collection contains a `post_id` field that references the `post`).
+
+---
+
+### **2. Usage of `$elemMatch`**
+`$elemMatch` is used to query documents that contain arrays, where you want to match documents based on **multiple conditions** for a single array element.
+
+#### Example:
+Suppose a `post` document has an array of `tags`:
+```json
+{
+  "_id": 101,
+  "title": "My First Post",
+  "tags": [
+    { "name": "mongodb", "priority": 1 },
+    { "name": "database", "priority": 2 }
+  ]
+}
+```
+- Query to find posts where the `tags` array contains an element with `name: "mongodb"` and `priority: 1`:
+```javascript
+db.posts.find({
+  tags: {
+    $elemMatch: { name: "mongodb", priority: 1 }
+  }
+});
+```
+
+---
+
+### **3. Usage of `$[<identifier>]` and `arrayFilters`**
+`arrayFilters` is used in update operations to target specific elements in an array.
+
+#### Example:
+Suppose a `post` document has an array of `comments`:
+```json
+{
+  "_id": 101,
+  "title": "My First Post",
+  "comments": [
+    { "id": 1, "text": "Great post!", "likes": 5 },
+    { "id": 2, "text": "Nice work!", "likes": 10 }
+  ]
+}
+```
+- Update the `likes` field of the comment with `id: 2`:
+```javascript
+db.posts.updateOne(
+  { _id: 101 },
+  { $set: { "comments.$[elem].likes": 15 } },
+  { arrayFilters: [{ "elem.id": 2 }] }
+);
+```
+
+---
+
+### **4. Aggregation Functions**
+Aggregation is a powerful feature in MongoDB for performing complex data transformations and calculations. It uses a pipeline of stages to process documents.
+
+#### Common Aggregation Stages:
+1. **`$match`**: Filters documents (like `find`).
+2. **`$group`**: Groups documents by a field and performs calculations.
+3. **`$project`**: Selects specific fields to include/exclude.
+4. **`$sort`**: Sorts documents.
+5. **`$lookup`**: Performs a join between collections.
+
+#### Example Scenarios:
+
+##### **Scenario 1: Count the number of posts per user**
+```javascript
+db.posts.aggregate([
+  {
+    $group: {
+      _id: "$user_id", // Group by user_id
+      totalPosts: { $sum: 1 } // Count posts for each user
+    }
+  }
+]);
+```
+
+##### **Scenario 2: Find the average number of likes per post**
+```javascript
+db.posts.aggregate([
+  {
+    $unwind: "$comments" // Flatten the comments array
+  },
+  {
+    $group: {
+      _id: "$_id", // Group by post ID
+      avgLikes: { $avg: "$comments.likes" } // Calculate average likes
+    }
+  }
+]);
+```
+
+##### **Scenario 3: Join `users` and `posts` collections**
+```javascript
+db.users.aggregate([
+  {
+    $lookup: {
+      from: "posts", // Collection to join
+      localField: "_id", // Field from users
+      foreignField: "user_id", // Field from posts
+      as: "user_posts" // Output array field
+    }
+  }
+]);
+```
+
+##### **Scenario 4: Find posts with more than 10 likes**
+```javascript
+db.posts.aggregate([
+  {
+    $match: { "comments.likes": { $gt: 10 } } // Filter posts
+  }
+]);
+```
+
+---
+
+### **5. Putting It All Together**
+Let’s design a database for a blog platform and perform some operations:
+
+#### Database Design
+- **Users Collection**:
+```json
+{
+  "_id": 1,
+  "name": "John",
+  "email": "john@example.com"
+}
+```
+- **Posts Collection**:
+```json
+{
+  "_id": 101,
+  "title": "My First Post",
+  "content": "Hello, world!",
+  "user_id": 1,
+  "comments": [
+    { "id": 1, "text": "Great post!", "likes": 5 },
+    { "id": 2, "text": "Nice work!", "likes": 10 }
+  ]
+}
+```
+
+#### Example Queries
+1. **Find all posts by a specific user**:
+```javascript
+db.posts.find({ user_id: 1 });
+```
+
+2. **Find posts with a comment that has more than 5 likes**:
+```javascript
+db.posts.find({
+  comments: {
+    $elemMatch: { likes: { $gt: 5 } }
+  }
+});
+```
+
+3. **Update the likes of a specific comment**:
+```javascript
+db.posts.updateOne(
+  { _id: 101 },
+  { $set: { "comments.$[elem].likes": 15 } },
+  { arrayFilters: [{ "elem.id": 2 }] }
+);
+```
+
+4. **Aggregation: Count the number of comments per post**:
+```javascript
+db.posts.aggregate([
+  {
+    $project: {
+      title: 1,
+      totalComments: { $size: "$comments" }
+    }
+  }
+]);
+```
+
+---
+
+### **Key Takeaways**
+- Use **referencing** for one-to-many relationships.
+- Use `$elemMatch` to query arrays with multiple conditions.
+- Use `arrayFilters` to update specific elements in arrays.
+- Use **aggregation pipelines** for complex queries and transformations.
