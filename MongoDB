@@ -1,3 +1,5 @@
+https://stackoverflow.com/questions/29577713/string-field-value-length-in-mongodb
+
 ### **1. Database Design Patterns**
 MongoDB is schema-less, but you still need to design your collections and documents based on the relationships between entities. Here’s a quick overview of the patterns:
 
