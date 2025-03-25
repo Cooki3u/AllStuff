@@ -1,0 +1,48 @@
+import React, { useState } from "react";
+
+const Chat: React.FC = () => {
+  const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false); // Prevent multiple sends
+
+  const sendMessage = async () => {
+    if (!message.trim() || isSending) return; // Prevent empty & rapid sends
+
+    setIsSending(true); // Disable sending temporarily
+
+    try {
+      await fetch("https://your-api.com/send-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      setMessage(""); // Clear input after successful send
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
+
+    setTimeout(() => setIsSending(false), 500); // Re-enable sending after 500ms
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent line break
+      sendMessage();
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={handleKeyDown}
+        disabled={isSending} // Disable input while sending
+      />
+      <button onClick={sendMessage} disabled={isSending}>Send</button>
+    </div>
+  );
+};
+
+export default Chat;
