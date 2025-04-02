@@ -1,0 +1,178 @@
+Yes! Your friend is right—**MarkerClusterGroup** from `react-leaflet-markercluster` isn't actively maintained, and using **leaflet.markercluster** directly with React Leaflet is a more reliable approach.  
+
+### **Using `leaflet.markercluster` Directly**
+Since `react-leaflet-markercluster` has issues, the best approach is to use the **native Leaflet cluster plugin**.
+
+---
+
+### **1. Install Required Packages**  
+```sh
+npm install react-leaflet leaflet leaflet.markercluster
+```
+
+---
+
+### **2. Import and Use Clustering in React Leaflet**
+Here’s how to **manually integrate clustering** using `leaflet.markercluster`:
+
+```tsx
+import React, { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+import "leaflet.markercluster";
+
+// Fix missing Leaflet icons issue
+import "leaflet-defaulticon-compatibility";
+import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
+
+const markers = [
+  { id: 1, lat: 51.505, lng: -0.09, name: "Marker 1" },
+  { id: 2, lat: 51.51, lng: -0.1, name: "Marker 2" },
+  { id: 3, lat: 51.515, lng: -0.12, name: "Marker 3" },
+  { id: 4, lat: 51.52, lng: -0.11, name: "Marker 4" },
+];
+
+const ClusterMarkers = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    const markerClusterGroup = L.markerClusterGroup();
+    
+    markers.forEach((marker) => {
+      const leafletMarker = L.marker([marker.lat, marker.lng]).bindPopup(marker.name);
+      markerClusterGroup.addLayer(leafletMarker);
+    });
+
+    map.addLayer(markerClusterGroup);
+
+    return () => {
+      map.removeLayer(markerClusterGroup);
+    };
+  }, [map]);
+
+  return null;
+};
+
+const MapWithCluster = () => {
+  return (
+    <MapContainer center={[51.505, -0.09]} zoom={13} style={{ height: "500px", width: "100%" }}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <ClusterMarkers />
+    </MapContainer>
+  );
+};
+
+export default MapWithCluster;
+```
+
+---
+
+### **Explanation:**
+1. **We use `leaflet.markercluster` directly** instead of `react-leaflet-markercluster`.
+2. **`ClusterMarkers` component**:
+   - Uses the `useMap()` hook to get the Leaflet map instance.
+   - Creates a `markerClusterGroup` and adds all markers to it.
+   - When the component unmounts, it removes the cluster group from the map.
+3. **Fix for Leaflet icons**:  
+   - Imports `leaflet-defaulticon-compatibility` to fix missing marker icons.
+4. **Markers automatically cluster** when zooming in/out.
+
+---
+
+### **Why This Works Better:**
+✅ **More stable** than `react-leaflet-markercluster`  
+✅ **Direct control over clusters**  
+✅ **Uses Leaflet’s official `markerClusterGroup`**  
+
+This is the recommended way to do clustering in **React Leaflet** today. Let me know if you need help customizing it!
+
+
+
+
+Yes! In the latest versions of **Leaflet**, there is now a dedicated `L.Cluster` instead of using the older `L.markerClusterGroup`. This is part of **Leaflet’s built-in clustering functionality**, which makes it more stable and performant.  
+
+---
+
+### **Using `L.Cluster` with React Leaflet**
+If you’re using **Leaflet 1.9+**, the newer `L.Cluster` can be used instead of `markerClusterGroup`.  
+
+### **1. Install Dependencies**  
+If you haven’t already:  
+```sh
+npm install react-leaflet leaflet
+```
+
+---
+
+### **2. Implement Clustering with `L.Cluster`**
+Here’s how you use **Leaflet's native clustering** in **React Leaflet**:
+
+```tsx
+import React, { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix Leaflet default icon issue
+import "leaflet-defaulticon-compatibility";
+import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
+
+const markers = [
+  { id: 1, lat: 51.505, lng: -0.09, name: "Marker 1" },
+  { id: 2, lat: 51.51, lng: -0.1, name: "Marker 2" },
+  { id: 3, lat: 51.515, lng: -0.12, name: "Marker 3" },
+  { id: 4, lat: 51.52, lng: -0.11, name: "Marker 4" },
+];
+
+const ClusterMarkers = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    const clusterGroup = new L.Cluster(); // NEW Leaflet Cluster
+    markers.forEach((marker) => {
+      const leafletMarker = L.marker([marker.lat, marker.lng]).bindPopup(marker.name);
+      clusterGroup.addLayer(leafletMarker);
+    });
+
+    map.addLayer(clusterGroup);
+
+    return () => {
+      map.removeLayer(clusterGroup);
+    };
+  }, [map]);
+
+  return null;
+};
+
+const MapWithCluster = () => {
+  return (
+    <MapContainer center={[51.505, -0.09]} zoom={13} style={{ height: "500px", width: "100%" }}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <ClusterMarkers />
+    </MapContainer>
+  );
+};
+
+export default MapWithCluster;
+```
+
+---
+
+### **Key Differences from `markerClusterGroup`**
+1. **Uses `new L.Cluster()` instead of `L.markerClusterGroup()`**  
+2. **More efficient clustering, built into newer Leaflet versions**  
+3. **No need for extra dependencies like `leaflet.markercluster`**  
+
+---
+
+### **Why Use `L.Cluster` Instead?**
+✅ **More stable** and future-proof (since Leaflet natively supports it)  
+✅ **No need to install `leaflet.markercluster`**  
+✅ **Better performance for large datasets**  
+
+This method is **cleaner and more modern** for **React Leaflet clustering**. Let me know if you need more tweaks!
